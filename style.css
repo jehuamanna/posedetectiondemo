@@ -92,7 +92,13 @@ footer {
   position: absolute;
 }
 
-.canvas {
+.canvas#c {
+  z-index: 8;
+  position: absolute;
+  pointer-events: none;
+}
+
+.canvas#output_canvas{
   z-index: 1;
   position: absolute;
   pointer-events: none;
@@ -103,6 +109,8 @@ footer {
   -webkit-transform: rotateY(180deg);
   -moz-transform: rotateY(180deg);
 }
+
+
 
 .detectOnClick {
   z-index: 0;

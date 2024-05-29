@@ -16,9 +16,9 @@ let poseLandmarker = undefined;
 let runningMode = "IMAGE";
 let enableWebcamButton;
 let webcamRunning = false;
-const videoWidth = "480x";
-const videoHeight = "360px";
-var p, x, y, i, canvas;
+const videoWidth = "100vw";
+const videoHeight = "100vh";
+var p, x, y, i, canvasBall, ctx;
 var nose_x_prev, nose_y_prev;
 // Before we can use PoseLandmarker class we must wait for it to finish
 // loading. Machine Learning models can be large and take a moment to
@@ -36,72 +36,23 @@ const createPoseLandmarker = async () => {
     demosSection.classList.remove("invisible");
 };
 createPoseLandmarker();
-/********************************************************************
-// Demo 1: Grab a bunch of images from the page and detection them
-// upon click.
-********************************************************************/
-// In this demo, we have put all our clickable images in divs with the
-// CSS class 'detectionOnClick'. Lets get all the elements that have
-// this class.
-const imageContainers = document.getElementsByClassName("detectOnClick");
-// Now let's go through all of these and add a click event listener.
-for (let i = 0; i < imageContainers.length; i++) {
-    // Add event listener to the child element whichis the img element.
-    imageContainers[i].children[0].addEventListener("click", handleClick);
-}
-// When an image is clicked, let's detect it and display results!
-async function handleClick(event) {
-    if (!poseLandmarker) {
-        console.log("Wait for poseLandmarker to load before clicking!");
-        return;
-    }
-    if (runningMode === "VIDEO") {
-        runningMode = "IMAGE";
-        await poseLandmarker.setOptions({ runningMode: "IMAGE" });
-    }
-    // Remove all landmarks drawed before
-    const allCanvas = event.target.parentNode.getElementsByClassName("canvas");
-    for (var i = allCanvas.length - 1; i >= 0; i--) {
-        const n = allCanvas[i];
-        n.parentNode.removeChild(n);
-    }
-    // We can call poseLandmarker.detect as many times as we like with
-    // different image data each time. The result is returned in a callback.
-    poseLandmarker.detect(event.target, (result) => {
-        canvas = document.createElement("canvas");
-        canvas.setAttribute("class", "canvas");
-        canvas.setAttribute("width", event.target.naturalWidth + "px");
-        canvas.setAttribute("height", event.target.naturalHeight + "px");
-        canvas.style =
-            "left: 0px;" +
-            "top: 0px;" +
-            "width: " +
-            event.target.width +
-            "px;" +
-            "height: " +
-            event.target.height +
-            "px;";
-        event.target.parentNode.appendChild(canvas);
-        const canvasCtx = canvas.getContext("2d");
-        const drawingUtils = new DrawingUtils(canvasCtx);
-        for (const landmark of result.landmarks) {
-            drawingUtils.drawLandmarks(landmark, {
-                radius: (data) => DrawingUtils.lerp(data.from.z, -0.15, 0.1, 5, 1,)
-            });
-            drawingUtils.drawConnectors(landmark, PoseLandmarker.POSE_CONNECTIONS, {
-                color: "#00FF00",
-                lineWidth: 2,
-                radius: 2
-            });
-        }
-    });
-}
+
 /********************************************************************
 // Demo 2: Continuously grab image from webcam stream and detect it.
 ********************************************************************/
 const video = document.getElementById("webcam");
-const canvasElement = document.getElementById("output_canvas");
-const canvasCtx = canvasElement.getContext("2d");
+const canvasElement = canvasBall = document.getElementById("output_canvas");
+const [width, height] = await getCameraResolution()
+canvasElement.setAttribute("width", width );
+    canvasElement.setAttribute("height", height);
+    canvasElement.style =
+      "left: 0px;" +
+      "top: 0px;" +
+      "width: " +
+      width  +
+      "height: " +
+      height;
+const canvasCtx = ctx = canvasElement.getContext("2d");
 const drawingUtils = new DrawingUtils(canvasCtx);
 // Check if webcam access is supported.
 const hasGetUserMedia = () => !!navigator.mediaDevices?.getUserMedia;
@@ -140,6 +91,7 @@ function enableCam(event) {
 }
 let lastVideoTime = -1;
 async function predictWebcam() {
+    const [videoWidth, videoHeight] = await getCameraResolution()
     canvasElement.style.height = videoHeight;
     video.style.height = videoHeight;
     canvasElement.style.width = videoWidth;
@@ -156,7 +108,7 @@ async function predictWebcam() {
             canvasCtx.save();
             canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
             for (const landmark of result.landmarks) {
-                update((1-landmark[0].x) * canvas.width , landmark[0].y * canvas.height)
+                update(landmark[0].x * canvasElement.width , landmark[0].y * canvasElement.height)
                 drawingUtils.drawLandmarks(landmark, {
                     color: "#FFA500",
                     fillColor: "#FFA500",
@@ -179,8 +131,7 @@ async function predictWebcam() {
     }
 }
 
-var canvas,
-    ctx,
+var ctx,
     centerX, centerY,
     sphere = new Sphere3D(20),
     distance = 300,
@@ -281,7 +232,7 @@ function drawPointWithGradient(ctx, x, y, size, gradient) {
 
     reflection = size / 4;
     // 0 - 5
-    var middle = canvas.width / 2;
+    var middle = canvasBall.width / 2;
     var a = mouse.y - middle;
 
     ctx.save();
@@ -313,7 +264,7 @@ function projection(xy, z, xyOffset, zOffset, distance) {
 
 function update(nose_x, nose_y) {
     ctx.save();
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvasBall.width, canvasBall.height);
 
     // nose_x ||= 0
     // nose_y ||= 0
@@ -349,7 +300,7 @@ function update(nose_x, nose_y) {
         rotateY(p, Math.cos(+new Date / 360));
 
         //if (mouse.down) 
-        modify = Math.min(Math.abs(mouse.px - (canvas.width / 2)) / (canvas.width / 2) * 1.25, 1.25);
+        modify = Math.min(Math.abs(mouse.px - (canvasBall.width / 2)) / (canvasBall.width / 2) * 1.25, 1.25);
         //}
         //else if(modify > 1) {
         //  modify -= .0001;
@@ -361,8 +312,8 @@ function update(nose_x, nose_y) {
         x = projection(p.x, p.z * modify, centerX, 100.0, distance);
         y = projection(p.y, p.z * modify, centerY, 100.0, distance);
 
-        if ((x >= 0) && (x < canvas.width)) {
-            if ((y >= 0) && (y < canvas.height)) {
+        if ((x >= 0) && (x < canvasBall.width)) {
+            if ((y >= 0) && (y < canvasBall.height)) {
                 if (p.z < 0) {
                     drawPoint(ctx, x, y, 1, "rgba(200,200,200,0.6)");
                 } else {
@@ -377,22 +328,22 @@ function update(nose_x, nose_y) {
 
 function start() {
 
-    canvas.onmousemove = function (e) {
+    canvasBall.onmousemove = function (e) {
         mouse.px = mouse.x;
         mouse.py = mouse.y;
-        var rect = canvas.getBoundingClientRect();
+        var rect = canvasBall.getBoundingClientRect();
         mouse.x = e.clientX - rect.left,
             mouse.y = e.clientY - rect.top,
 
             e.preventDefault();
     };
 
-    canvas.onmouseup = function (e) {
+    canvasBall.onmouseup = function (e) {
         mouse.down = false;
         e.preventDefault();
     };
 
-    canvas.onmousedown = function (e) {
+    canvasBall.onmousedown = function (e) {
         mouse.down = true;
         e.preventDefault();
     };
@@ -402,15 +353,39 @@ function start() {
 
 window.onload = function () {
 
-    canvas = document.getElementById('c');
-    centerX = canvas.width / 2.0;
-    centerY = canvas.height / 2.0;
-    nose_x_prev = -1;
-    nose_y_prev = -1;
-    ctx = canvas.getContext('2d');
+    // canvasBall = document.getElementById('c');
+    // centerX = canvasBall.width / 2.0;
+    // centerY = canvasBall.height / 2.0;
+    // nose_x_prev = -1;
+    // nose_y_prev = -1;
+    // ctx = canvasBall.getContext('2d');
 
     // canvas.width = 800;
     // canvas.height = 600;
 
     start();
 };
+
+
+async function getCameraResolution() {
+    // suppose we require a full HD video
+    let constraints = { 
+                        audio: false, 
+                        video: { 
+                            width: { ideal: 1920 }, 
+                            height: { ideal: 1080 } 
+                        }
+                    };
+
+    let stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+    let stream_settings = stream.getVideoTracks()[0].getSettings();
+
+    // actual width & height of the camera video
+    let stream_width = stream_settings.width;
+    let stream_height = stream_settings.height;
+
+    console.log('Width: ' + stream_width + 'px');
+    console.log('Height: ' + stream_height + 'px');
+    return [stream_width + 'px',stream_height + 'px' ]
+}
