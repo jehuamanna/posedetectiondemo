@@ -16,8 +16,8 @@ let poseLandmarker = undefined;
 let runningMode = "IMAGE";
 let enableWebcamButton;
 let webcamRunning = false;
-const videoWidth = "360x";
-const videoHeight = "480px";
+const videoWidth = "480x";
+const videoHeight = "360px";
 var p, x, y, i, canvas;
 var nose_x_prev, nose_y_prev;
 // Before we can use PoseLandmarker class we must wait for it to finish
