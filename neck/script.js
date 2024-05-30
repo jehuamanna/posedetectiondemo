@@ -1,5 +1,6 @@
 import DeviceDetector from "https://cdn.skypack.dev/device-detector-js@2.2.10";
 import AudioHandler from "./AudioHandler.js";
+import Bubbles from './bubbles.js'
 // Usage: testSupport({client?: string, os?: string}[])
 // Client and os are regular expressions.
 // See: https://cdn.jsdelivr.net/npm/device-detector-js@2.2.10/README.md for
@@ -43,12 +44,18 @@ const config = {
 // Our input frames will come from here.
 const videoElement = document.getElementsByClassName('input_video')[0];
 const canvasElement = document.getElementsByClassName('output_canvas')[0];
+const canvasBubblesElement = document.getElementById('bubbleCanvas');
 const controlsElement = document.getElementsByClassName('control-panel')[0];
 const canvasCtx = canvasElement.getContext('2d');
+const canvasBubbleCtx = canvasBubblesElement.getContext('2d');
 const audioHandler = new AudioHandler({
     src: "./count-from-pixabay.webm"
 })
+const bubbleBustSound = new AudioHandler({
+    src: "./pick-92276.mp3"
+})
 audioHandler.setup();
+bubbleBustSound.setup()
 // We'll add this to our control panel later, but we'll save it here so we can
 // call tick() each time the graph runs.
 const fpsControl = new controls.FPS();
@@ -87,6 +94,7 @@ function connect(ctx, connectors) {
 }
 let activeEffect = 'mask';
 let isPlayed = false;
+const  bubblesFn = new Bubbles(canvasBubbleCtx )
 function onResults(results) {
     // Hide the spinner.
     document.body.classList.add('loaded');
@@ -97,6 +105,7 @@ function onResults(results) {
     // Draw the overlays.
     canvasCtx.save();
     canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+    bubblesFn.animate()
     if (results.segmentationMask) {
         canvasCtx.drawImage(results.segmentationMask, 0, 0, canvasElement.width, canvasElement.height);
         // Only overwrite existing pixels.
@@ -138,7 +147,7 @@ function onResults(results) {
             ]]);
         }
         // Pose...
-        console.log(results.poseLandmarks)
+        // console.log(results.poseLandmarks)
         drawingUtils.drawConnectors(canvasCtx, results.poseLandmarks, mpHolistic.POSE_CONNECTIONS, { color: 'white' });
         drawingUtils.drawLandmarks(canvasCtx, Object.values(mpHolistic.POSE_LANDMARKS_LEFT)
             .map(index => results.poseLandmarks?.[index]), { visibilityMin: 0.65, color: 'white', fillColor: 'rgb(255,138,0)' });
@@ -209,11 +218,33 @@ function onResults(results) {
 
         canvasCtx.stroke();
 
+        if(results.rightHandLandmarks){
+
+            const thumbMetrics = results.rightHandLandmarks[8]
+            const thumbX = thumbMetrics.x * canvasElement.width
+            const thumbY = (1 - thumbMetrics.y) * canvasElement.height
+            let bubblesArray = bubblesFn.getBubblesArray()
+            console.log([thumbX, thumbY], "@@@@@",bubblesArray)
+            bubblesArray = bubblesArray.filter(bubble => {
+                let {x, y, radius} = bubble
+                const Y = y
+                const YY = (1 - thumbY / canvasElement.height) * canvasElement.height
+                const diff = Math.abs(geometric.lineLength([[x , Y], [thumbX, YY ]])) - radius
+                console.log(thumbX, YY, x, Y, radius, bubble, diff)
+                if(diff <= 0){
+                    bubbleBustSound.play()
+                    return  false
+                }else {
+                    return true
+                }
+            })
+            bubblesFn.setBubblesArray(bubblesArray)
+
+        }
 
 
-
-        console.log(Math.abs(angle))
-        console.log(Math.abs(angleLine))
+        // console.log(Math.abs(angle))
+        // console.log(Math.abs(angleLine))
     }
 
     // Face...
@@ -230,6 +261,7 @@ const holistic = new mpHolistic.Holistic(config);
 holistic.onResults(onResults);
 // Present a control panel through which the user can manipulate the solution
 // options.
+
 new controls
     .ControlPanel(controlsElement, {
         selfieMode: true,
@@ -262,8 +294,8 @@ new controls
                     width = window.innerWidth;
                     height = width * aspect;
                 }
-                canvasElement.width = width;
-                canvasElement.height = height;
+                canvasElement.width = canvasBubblesElement.width = width;
+                canvasElement.height = canvasBubblesElement.height =  height;
                 await holistic.send({ image: input });
             },
         }),

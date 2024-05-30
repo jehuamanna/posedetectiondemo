@@ -13,7 +13,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5/holistic.js" crossorigin="anonymous"></script>
   <script src="https://unpkg.com/geometric@2.5.4/build/geometric.min.js"></script>
 
-<link rel="stylesheet" href="./neck/style.css">
+<link rel="stylesheet" href="./style.css">
 <base href="/neck/" >
 </head>
 <body>
@@ -21,8 +21,8 @@
 <div class="container">
     <video class="input_video"></video>
     <div class="canvas-container">
-    <canvas class="output_canvas" width="1280px" height="720px">
-    </canvas>
+    <canvas class="output_canvas" width="1280px" height="720px" style="position: absolute; left: 0px; top: 0px;"></canvas>
+      <canvas id="bubbleCanvas"  style="position: absolute; left: 0px; top: 0px;"></canvas>
     </div>
     <div class="loading">
       <div class="spinner"></div>
