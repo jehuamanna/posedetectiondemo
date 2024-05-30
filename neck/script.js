@@ -34,9 +34,11 @@ function testSupport(supportedDevices) {
 const controls = window;
 const mpHolistic = window;
 const drawingUtils = window;
-const config = { locateFile: (file) => {
+const config = {
+    locateFile: (file) => {
         return `https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1675471629/${file}`;
-    } };
+    }
+};
 // Our input frames will come from here.
 const videoElement = document.getElementsByClassName('input_video')[0];
 const canvasElement = document.getElementsByClassName('output_canvas')[0];
@@ -118,81 +120,82 @@ function onResults(results) {
         if (results.rightHandLandmarks) {
             canvasCtx.strokeStyle = 'white';
             connect(canvasCtx, [[
-                    results.poseLandmarks[mpHolistic.POSE_LANDMARKS.RIGHT_ELBOW],
-                    results.rightHandLandmarks[0]
-                ]]);
+                results.poseLandmarks[mpHolistic.POSE_LANDMARKS.RIGHT_ELBOW],
+                results.rightHandLandmarks[0]
+            ]]);
         }
         if (results.leftHandLandmarks) {
             canvasCtx.strokeStyle = 'white';
             connect(canvasCtx, [[
-                    results.poseLandmarks[mpHolistic.POSE_LANDMARKS.LEFT_ELBOW],
-                    results.leftHandLandmarks[0]
-                ]]);
+                results.poseLandmarks[mpHolistic.POSE_LANDMARKS.LEFT_ELBOW],
+                results.leftHandLandmarks[0]
+            ]]);
         }
+        // Pose...
+        console.log(results.poseLandmarks)
+        drawingUtils.drawConnectors(canvasCtx, results.poseLandmarks, mpHolistic.POSE_CONNECTIONS, { color: 'white' });
+        drawingUtils.drawLandmarks(canvasCtx, Object.values(mpHolistic.POSE_LANDMARKS_LEFT)
+            .map(index => results.poseLandmarks?.[index]), { visibilityMin: 0.65, color: 'white', fillColor: 'rgb(255,138,0)' });
+        drawingUtils.drawLandmarks(canvasCtx, Object.values(mpHolistic.POSE_LANDMARKS_RIGHT)
+            .map(index => results.poseLandmarks?.[index]), { visibilityMin: 0.65, color: 'white', fillColor: 'rgb(0,217,231)' });
+        // Hands...
+        drawingUtils.drawConnectors(canvasCtx, results.rightHandLandmarks, mpHolistic.HAND_CONNECTIONS, { color: 'white' });
+        drawingUtils.drawLandmarks(canvasCtx, results.rightHandLandmarks, {
+            color: 'white',
+            fillColor: 'rgb(0,217,231)',
+            lineWidth: 2,
+            radius: (data) => {
+                return drawingUtils.lerp(data.from.z, -0.15, .1, 10, 1);
+            }
+        });
+        drawingUtils.drawConnectors(canvasCtx, results.leftHandLandmarks, mpHolistic.HAND_CONNECTIONS, { color: 'white' });
+        drawingUtils.drawLandmarks(canvasCtx, results.leftHandLandmarks, {
+            color: 'white',
+            fillColor: 'rgb(255,138,0)',
+            lineWidth: 2,
+            radius: (data) => {
+                return drawingUtils.lerp(data.from.z, -0.15, .1, 10, 1);
+            }
+        });
+
+        const pointA = results.poseLandmarks[9]
+        const pointB = results.poseLandmarks[10]
+        const pointACord = [pointA.x * canvasElement.width, (1 - pointA.y) * canvasElement.height];
+        const pointBCord = [pointB.x * canvasElement.width, (1 - pointB.y) * canvasElement.height]
+        const angle = geometric.lineAngle([pointBCord, pointACord])
+
+
+        const pointC = results.poseLandmarks[12]
+        const pointD = results.poseLandmarks[11]
+
+        const pointCCord = [pointC.x * canvasElement.width, (1 - pointC.y) * canvasElement.height];
+        const pointDCord = [pointD.x * canvasElement.width, (1 - pointD.y) * canvasElement.height];
+
+        const midPoint = geometric.lineMidpoint([pointDCord, pointCCord])
+
+        const pointE = results.poseLandmarks[0];
+        const pointECord = [pointE.x * canvasElement.width, (1 - pointE.y) * canvasElement.height];
+
+        canvasCtx.beginPath();
+
+        // Set a start-point
+        canvasCtx.moveTo(pointECord[0], (1 - pointECord[1] / canvasElement.height) * canvasElement.height);
+
+        canvasCtx.lineTo(midPoint[0], (1 - midPoint[1] / canvasElement.height) * canvasElement.height);
+
+
+
+        // Set an end-point
+        canvasCtx.strokeStyle = Math.abs(angle) > 15 ? "green" : "red"
+        // Stroke it (Do the Drawing)
+        canvasCtx.stroke();
+
+
+
+
+        console.log(Math.abs(angle))
     }
-    // Pose...
-    console.log(results.poseLandmarks)
-    drawingUtils.drawConnectors(canvasCtx, results.poseLandmarks, mpHolistic.POSE_CONNECTIONS, { color: 'white' });
-    drawingUtils.drawLandmarks(canvasCtx, Object.values(mpHolistic.POSE_LANDMARKS_LEFT)
-        .map(index => results.poseLandmarks[index]), { visibilityMin: 0.65, color: 'white', fillColor: 'rgb(255,138,0)' });
-    drawingUtils.drawLandmarks(canvasCtx, Object.values(mpHolistic.POSE_LANDMARKS_RIGHT)
-        .map(index => results.poseLandmarks[index]), { visibilityMin: 0.65, color: 'white', fillColor: 'rgb(0,217,231)' });
-    // Hands...
-    drawingUtils.drawConnectors(canvasCtx, results.rightHandLandmarks, mpHolistic.HAND_CONNECTIONS, { color: 'white' });
-    drawingUtils.drawLandmarks(canvasCtx, results.rightHandLandmarks, {
-        color: 'white',
-        fillColor: 'rgb(0,217,231)',
-        lineWidth: 2,
-        radius: (data) => {
-            return drawingUtils.lerp(data.from.z, -0.15, .1, 10, 1);
-        }
-    });
-    drawingUtils.drawConnectors(canvasCtx, results.leftHandLandmarks, mpHolistic.HAND_CONNECTIONS, { color: 'white' });
-    drawingUtils.drawLandmarks(canvasCtx, results.leftHandLandmarks, {
-        color: 'white',
-        fillColor: 'rgb(255,138,0)',
-        lineWidth: 2,
-        radius: (data) => {
-            return drawingUtils.lerp(data.from.z, -0.15, .1, 10, 1);
-        }
-    });
 
-    const pointA = results.poseLandmarks[9]
-    const pointB = results.poseLandmarks[10]
-    const pointACord = [pointA.x * canvasElement.width, (1-pointA.y) * canvasElement.height];
-    const pointBCord = [pointB.x * canvasElement.width, (1-pointB.y )* canvasElement.height]
-    const angle = geometric.lineAngle([pointBCord, pointACord])
-
-
-    const pointC = results.poseLandmarks[12]
-    const pointD = results.poseLandmarks[11]
-
-    const pointCCord = [pointC.x * canvasElement.width, (1-pointC.y) * canvasElement.height];
-    const pointDCord = [pointD.x * canvasElement.width, (1-pointD.y) * canvasElement.height];
-
-    const midPoint = geometric.lineMidpoint([pointDCord, pointCCord])
-
-    const pointE = results.poseLandmarks[0];
-    const pointECord = [pointE.x * canvasElement.width, (1-pointE.y) * canvasElement.height];
-    
-    canvasCtx.beginPath();
-
-    // Set a start-point
-    canvasCtx.moveTo(pointECord[0], (1 -  pointECord[1]/canvasElement.height)* canvasElement.height);
-
-    canvasCtx.lineTo(midPoint[0], (1 -  midPoint[1]/canvasElement.height)* canvasElement.height);
-
-
-    
-    // Set an end-point
-    canvasCtx.strokeStyle= Math.abs(angle) > 20  ? "green": "red"
-    // Stroke it (Do the Drawing)
-    canvasCtx.stroke();
-
-
-
-
-    console.log(Math.abs(angle))
     // Face...
     // drawingUtils.drawConnectors(canvasCtx, results.faceLandmarks, mpHolistic.FACEMESH_TESSELATION, { color: '#C0C0C070', lineWidth: 1 });
     // drawingUtils.drawConnectors(canvasCtx, results.faceLandmarks, mpHolistic.FACEMESH_RIGHT_EYE, { color: 'rgb(0,217,231)' });
@@ -209,70 +212,70 @@ holistic.onResults(onResults);
 // options.
 new controls
     .ControlPanel(controlsElement, {
-    selfieMode: true,
-    modelComplexity: 1,
-    smoothLandmarks: true,
-    enableSegmentation: false,
-    smoothSegmentation: true,
-    minDetectionConfidence: 0.5,
-    minTrackingConfidence: 0.5,
-    effect: 'background',
-})
+        selfieMode: true,
+        modelComplexity: 1,
+        smoothLandmarks: true,
+        enableSegmentation: false,
+        smoothSegmentation: true,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5,
+        effect: 'background',
+    })
     .add([
-    new controls.StaticText({ title: 'MediaPipe Holistic' }),
-    fpsControl,
-    new controls.Toggle({ title: 'Selfie Mode', field: 'selfieMode' }),
-    new controls.SourcePicker({
-        onSourceChanged: () => {
-            // Resets because the pose gives better results when reset between
-            // source changes.
-            holistic.reset();
-        },
-        onFrame: async (input, size) => {
-            const aspect = size.height / size.width;
-            let width, height;
-            if (window.innerWidth > window.innerHeight) {
-                height = window.innerHeight;
-                width = height / aspect;
-            }
-            else {
-                width = window.innerWidth;
-                height = width * aspect;
-            }
-            canvasElement.width = width;
-            canvasElement.height = height;
-            await holistic.send({ image: input });
-        },
-    }),
-    new controls.Slider({
-        title: 'Model Complexity',
-        field: 'modelComplexity',
-        discrete: ['Lite', 'Full', 'Heavy'],
-    }),
-    new controls.Toggle({ title: 'Smooth Landmarks', field: 'smoothLandmarks' }),
-    new controls.Toggle({ title: 'Enable Segmentation', field: 'enableSegmentation' }),
-    new controls.Toggle({ title: 'Smooth Segmentation', field: 'smoothSegmentation' }),
-    new controls.Slider({
-        title: 'Min Detection Confidence',
-        field: 'minDetectionConfidence',
-        range: [0, 1],
-        step: 0.01
-    }),
-    new controls.Slider({
-        title: 'Min Tracking Confidence',
-        field: 'minTrackingConfidence',
-        range: [0, 1],
-        step: 0.01
-    }),
-    new controls.Slider({
-        title: 'Effect',
-        field: 'effect',
-        discrete: { 'background': 'Background', 'mask': 'Foreground' },
-    }),
-])
+        new controls.StaticText({ title: 'MediaPipe Holistic' }),
+        fpsControl,
+        new controls.Toggle({ title: 'Selfie Mode', field: 'selfieMode' }),
+        new controls.SourcePicker({
+            onSourceChanged: () => {
+                // Resets because the pose gives better results when reset between
+                // source changes.
+                holistic.reset();
+            },
+            onFrame: async (input, size) => {
+                const aspect = size.height / size.width;
+                let width, height;
+                if (window.innerWidth > window.innerHeight) {
+                    height = window.innerHeight;
+                    width = height / aspect;
+                }
+                else {
+                    width = window.innerWidth;
+                    height = width * aspect;
+                }
+                canvasElement.width = width;
+                canvasElement.height = height;
+                await holistic.send({ image: input });
+            },
+        }),
+        new controls.Slider({
+            title: 'Model Complexity',
+            field: 'modelComplexity',
+            discrete: ['Lite', 'Full', 'Heavy'],
+        }),
+        new controls.Toggle({ title: 'Smooth Landmarks', field: 'smoothLandmarks' }),
+        new controls.Toggle({ title: 'Enable Segmentation', field: 'enableSegmentation' }),
+        new controls.Toggle({ title: 'Smooth Segmentation', field: 'smoothSegmentation' }),
+        new controls.Slider({
+            title: 'Min Detection Confidence',
+            field: 'minDetectionConfidence',
+            range: [0, 1],
+            step: 0.01
+        }),
+        new controls.Slider({
+            title: 'Min Tracking Confidence',
+            field: 'minTrackingConfidence',
+            range: [0, 1],
+            step: 0.01
+        }),
+        new controls.Slider({
+            title: 'Effect',
+            field: 'effect',
+            discrete: { 'background': 'Background', 'mask': 'Foreground' },
+        }),
+    ])
     .on(x => {
-    const options = x;
-    videoElement.classList.toggle('selfie', options.selfieMode);
-    activeEffect = x['effect'];
-    holistic.setOptions(options);
-});
+        const options = x;
+        videoElement.classList.toggle('selfie', options.selfieMode);
+        activeEffect = x['effect'];
+        holistic.setOptions(options);
+    });
