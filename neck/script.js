@@ -1,4 +1,5 @@
 import DeviceDetector from "https://cdn.skypack.dev/device-detector-js@2.2.10";
+import AudioHandler from "./AudioHandler.js";
 // Usage: testSupport({client?: string, os?: string}[])
 // Client and os are regular expressions.
 // See: https://cdn.jsdelivr.net/npm/device-detector-js@2.2.10/README.md for
@@ -44,6 +45,10 @@ const videoElement = document.getElementsByClassName('input_video')[0];
 const canvasElement = document.getElementsByClassName('output_canvas')[0];
 const controlsElement = document.getElementsByClassName('control-panel')[0];
 const canvasCtx = canvasElement.getContext('2d');
+const audioHandler = new AudioHandler({
+    src: "./count-from-pixabay.webm"
+})
+audioHandler.setup();
 // We'll add this to our control panel later, but we'll save it here so we can
 // call tick() each time the graph runs.
 const fpsControl = new controls.FPS();
@@ -81,6 +86,7 @@ function connect(ctx, connectors) {
     }
 }
 let activeEffect = 'mask';
+let isPlayed = false;
 function onResults(results) {
     // Hide the spinner.
     document.body.classList.add('loaded');
@@ -176,6 +182,9 @@ function onResults(results) {
         const pointE = results.poseLandmarks[0];
         const pointECord = [pointE.x * canvasElement.width, (1 - pointE.y) * canvasElement.height];
 
+        const angleLine = geometric.lineAngle([pointECord, midPoint])
+
+
         canvasCtx.beginPath();
 
         // Set a start-point
@@ -183,17 +192,28 @@ function onResults(results) {
 
         canvasCtx.lineTo(midPoint[0], (1 - midPoint[1] / canvasElement.height) * canvasElement.height);
 
+        if ((Math.abs(angleLine) > 60 && Math.abs(angleLine)< 75 || Math.abs(angleLine) > 115 && Math.abs(angleLine)< 130)){
+            canvasCtx.strokeStyle = "green"
+            if(!isPlayed){
+                audioHandler.play()
+                isPlayed = true;
+            }
+        } else if ( Math.abs(angleLine) > 85 && Math.abs(angleLine)< 95) {
+            canvasCtx.strokeStyle = "yellow"
+            isPlayed = false;
+        } else {
+            canvasCtx.strokeStyle = "red"
+            isPlayed = false;
 
+        }
 
-        // Set an end-point
-        canvasCtx.strokeStyle = Math.abs(angle) > 15 ? "green" : "red"
-        // Stroke it (Do the Drawing)
         canvasCtx.stroke();
 
 
 
 
         console.log(Math.abs(angle))
+        console.log(Math.abs(angleLine))
     }
 
     // Face...
@@ -279,3 +299,5 @@ new controls
         activeEffect = x['effect'];
         holistic.setOptions(options);
     });
+
+
