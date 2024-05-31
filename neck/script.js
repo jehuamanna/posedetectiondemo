@@ -95,6 +95,8 @@ function connect(ctx, connectors) {
 let activeEffect = 'mask';
 let isPlayed = false;
 const  bubblesFn = new Bubbles(canvasBubbleCtx )
+bubblesFn.init()
+bubblesFn.animate()
 function onResults(results) {
     // Hide the spinner.
     document.body.classList.add('loaded');
@@ -105,7 +107,8 @@ function onResults(results) {
     // Draw the overlays.
     canvasCtx.save();
     canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-    bubblesFn.animate()
+    // requestAnimationFrame(bubblesFn.animate.bind(bubblesFn))
+    bubblesFn.animate();
     if (results.segmentationMask) {
         canvasCtx.drawImage(results.segmentationMask, 0, 0, canvasElement.width, canvasElement.height);
         // Only overwrite existing pixels.
