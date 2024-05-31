@@ -55,7 +55,7 @@ class Bubble {
         this.x = Math.random() * this.canvas.width;
         this.y = 0 - Math.random() * this.canvas.height;
         this.radius = Math.random() * 20 + 50;
-        this.speed = Math.random() * 20 + 1;
+        this.speed = Math.random() * 30 + 1;
         this.angle = Math.random() * 2 * Math.PI;
         this.opacity = Math.random() * 0.5 + 0.5;
     }
