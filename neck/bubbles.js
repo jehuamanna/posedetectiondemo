@@ -64,7 +64,7 @@ class Bubble {
         if (this.y > this.canvas.height - this.radius) {
             this.y = 0 + this.radius;
             this.x = Math.random() * this.canvas.width;
-            this.speed = Math.random() * 2 + 1;
+            this.speed = Math.random() * 30 + 1;
         }
     }
     draw() {
