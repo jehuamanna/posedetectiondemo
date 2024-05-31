@@ -6,7 +6,7 @@ export default function Bubbles(ctx) {
     
 
     this.init = function() {
-        for (let i = 0; i < 1; i++) {
+        for (let i = 0; i < 5; i++) {
             this.bubblesArray.push(new Bubble(ctx));
         }
     }
@@ -17,7 +17,7 @@ export default function Bubbles(ctx) {
             bubble.update();
             bubble.draw();
         });
-        if (this.bubblesArray.length < 2) {
+        if (this.bubblesArray.length < 5) {
             this.bubblesArray.push(new Bubble(ctx));
         }
     }
