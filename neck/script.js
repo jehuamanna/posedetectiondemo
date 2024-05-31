@@ -201,7 +201,7 @@ function onResults(results) {
 
         canvasCtx.lineTo(midPoint[0], (1 - midPoint[1] / canvasElement.height) * canvasElement.height);
 
-        if ((Math.abs(angleLine) > 60 && Math.abs(angleLine)< 75 || Math.abs(angleLine) > 115 && Math.abs(angleLine)< 130)){
+        if (Math.abs(angleLine)< 75 || Math.abs(angleLine) > 115){
             canvasCtx.strokeStyle = "green"
             if(!isPlayed){
                 audioHandler.play()
@@ -218,27 +218,36 @@ function onResults(results) {
 
         canvasCtx.stroke();
 
-        if(results.rightHandLandmarks){
+        if(results.rightHandLandmarks || results.leftHandLandmarks){
 
-            const thumbMetrics = results.rightHandLandmarks[8]
-            const thumbX = thumbMetrics.x * canvasElement.width
-            const thumbY = (1 - thumbMetrics.y) * canvasElement.height
-            let bubblesArray = bubblesFn.getBubblesArray()
-            console.log([thumbX, thumbY], "@@@@@",bubblesArray)
-            bubblesArray = bubblesArray.filter(bubble => {
-                let {x, y, radius} = bubble
-                const Y = y
-                const YY = (1 - thumbY / canvasElement.height) * canvasElement.height
-                const diff = Math.abs(geometric.lineLength([[x , Y], [thumbX, YY ]])) - radius
-                console.log(thumbX, YY, x, Y, radius, bubble, diff)
-                if(diff <= 0){
-                    bubbleBustSound.play()
-                    return  false
-                }else {
-                    return true
-                }
+            const indexLeftMetrics =  results.leftHandLandmarks?.[8]
+            const indexLeftX = indexLeftMetrics?.x * canvasElement.width
+            const indexLeftY = indexLeftMetrics?.y * canvasElement.height
+            console.log("left", indexLeftX, indexLeftY)
+            
+            const indexRightMetrics = results.rightHandLandmarks?.[8]  
+            
+            const indexRightX = indexRightMetrics?.x * canvasElement.width
+            const indexRightY =  indexRightMetrics?.y * canvasElement.height
+            console.log("right", indexRightX, indexRightY)
+
+            const indexes = [[indexLeftX, indexLeftY], [indexRightX, indexRightY]]
+            indexes.forEach(indexFinger => {
+                let bubblesArray = bubblesFn.getBubblesArray()
+                bubblesArray = bubblesArray.filter(bubble => {
+                    let {x, y, radius} = bubble
+                    const diff = Math.abs(geometric.lineLength([[x , y], indexFinger])) - radius
+                    // console.log(indexFinger, x, y, radius, bubble, diff)
+                    if(diff <= 0){
+                        bubbleBustSound.play()
+                        return  false
+                    }else {
+                        return true
+                    }
+                })
+                bubblesFn.setBubblesArray(bubblesArray)
             })
-            bubblesFn.setBubblesArray(bubblesArray)
+            
 
         }
 
